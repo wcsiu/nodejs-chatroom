@@ -1,0 +1,175 @@
+<!doctype html>
+<html>
+<head>
+    <title>Secret Chatroom</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; background: #eee;}
+      #mp { background: #fff; padding: 1px;}
+      #mp input { border: 0; padding: 10px; width: 100%; margin-right: .1%; font-size:20px; }
+      .login {display:block; position:fixed; top:30%; left:35%;width:30%;height:250px; border: 1px solid #d7d7d7;background: #fff;z-index:2;}
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #onlineUsers { list-style-type: none; margin: 0; padding: 0; }
+      #onlineUsers li { padding: 5px 10px; }
+      #loginDiv {text-align: center;}
+      #loginDiv input{padding: 10px; border: 1px solid #d7d7d7;width:70%; height:45px;font-size:1.5em; top: 51 %;margin:0 auto;}
+      #loginDiv button{padding:10px; border: 1px solid #d7d7d7; width:70%; font-size:1.5em;height:45px; background-color:#4285f4; color: white;}
+      #inner-login {width:100%; height:60px; line-height:60px; text-align:center; font-size:1.5em;}
+      #n {display:block;}
+      #nc {margin-top:10px}
+      #nr {width:100%;height:40px;line-height:40px; text-align:center;}
+      #left {width:20%; position:fixed; background: #eee; overflow:auto; bottom:0px; top:0px; margin:15px 0;}
+      #left-inner{background:#fff;border: 1px solid rgba(0,0,0,.1); margin:0 15px;}
+      #right {left:20%;width:80%; position: fixed; background:#eee; height:100%; }
+      #top {position: absolute; bottom:60px;left:0;right:0;top:0px; overflow:auto; margin:15px 0;}
+      #top-inner {background:#fff; margin:0 15px;border: 1px solid rgba(0,0,0,.1); overflow:auto;}
+      #bottom {position:absolute; bottom:15px;left: 15px; right: 15px;}
+      #blocker {position:fixed;top:0;bottom:0;left:0;right:0;z-index: 1;background:rgba(0,0,0,0.4);}
+      #onlineUsers {margin:10px;}
+      #onlineUsers li {font-size: 1.5em;margin: 5px;}
+      #onlineUsers li:not(.YOU):hover, #onlineUsers li.selected {background: #4285f4; color:white;font-size: 1.5em;margin: 5px;cursor:pointer;}
+      #menu { background:#fff;border: 1px solid rgba(0,0,0,.1); overflow:auto;height: 580px; width: 800px;position:fixed;top:15%; left:20%;z-index: 3;display:none;}
+      #menu-inner {margin:20px 60px;}
+      #help {text-align:center;margin:10px;color: #12c;cursor: pointer;}
+      #menu-inner p {font-size: 1.5em;margin:15px;}
+      #menu-out {display: inline-block;padding: 6px 12px;margin-bottom: 0;font-size: 14px;font-weight: 400;line-height: 1.42857143;text-align: center;white-space: nowrap;vertical-align: middle;border: 1px solid transparent;width: 100%;margin: 5px;cursor:pointer;}
+      #menu-email {display: inline-block;padding: 6px 12px;margin-bottom: 0;font-size: 14px;font-weight: 400;line-height: 1.42857143;text-align: center;white-space: nowrap;vertical-align: middle;border: 1px solid transparent;width: 100%;background-color:#4285f4;margin: 5px;cursor:pointer;}
+      h3 {margin: 20px;}
+    </style>
+</head>
+<body>
+    <div id="blocker"></div>
+    <div id="menu">
+    <div id="menu-inner">
+    <p>First welcome and thank you for using my chat room. I hope you can have a good time here.</p>
+    <p>The following are some guidelines that might help you using the chat room better.</p>
+    <p>1, Name can't be repeated in chat room so if it is used, just pick another one.</p>
+    <p>2, Maximun number of characters in name is 8 and space at head and tail will be chopped.</p>
+    <p>3, You can pick people you want to talk privately by clicking their names from the online users list on the left.</p>
+    <p>4, Try to say something not violating the law.</p>
+    <p>5, The timestamp here is following Hong Kong Time.</p>  
+    <p>Okay then, I believe that's it. I don't think you need to be told something like pressing enter to submit your things. You can try to exploit my site and hopefully you can tell me what you found</p>
+    <a href="mailto:wcsiu@ust.hk"><button id="menu-email">Email me</button></a>
+    <button id="menu-out">Cancel</button>
+    </div>
+    </div>
+    <div class="login">
+        <div id="inner-login">Join the Wolfpack</div>
+                <div id="loginDiv" action="">
+                    <input id="n" autocomplete="off" type="text" placeholder="Name Please"/>
+                    <button id="nc">Enter</button>
+                </div>
+                <div id="help">First Time Using It?</div>
+                <div id="nr"></div>
+    </div>
+    <div id ="left">
+        <div id="left-inner">
+        <h2 style="width:100%;text-align:center;">Online Users</h2>
+            <ul id="onlineUsers"></ul>
+        </div>
+    </div>
+
+    <div id="right">
+        <div id="top">
+            <div id="top-inner">
+                <ul id="messages"></ul>
+            </div>
+            
+        </div>
+        <div id="bottom">
+            <div id="mp" action="">
+                <input id="m" autocomplete="off" type="text" placeholder="Type here..."/>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script>
+    var whisper = [];
+    $("body").on('click', '#onlineUsers li', function() {
+            var temp = whisper.indexOf($(this).text());
+            if(temp == "-1" && !$(this).hasClass('selected') && !$(this).hasClass('YOU')) {
+                $(this).addClass('selected');
+                whisper.push($(this).text());
+            }
+            else if (temp != "-1" && $(this).hasClass('selected') && !$(this).hasClass('YOU')) {
+                $(this).removeClass('selected');
+                whisper.splice(temp,1);
+            }
+    });
+    $(window).resize(function() {
+        setMinHeight();
+    });
+    setMinHeight();
+    function setMinHeight() {
+        var topMinHeight = $(document).height() - $('#bottom').height() - 45;
+        $('#top-inner').css('minHeight',topMinHeight);
+        var leftMinHeight = $(document).height() -30;
+        $('#left-inner').css('minHeight',leftMinHeight);
+    }
+      // var socket = io.connect("localhost:8080");
+      var socket = io.connect("http://nodejs-hkusn.rhcloud.com:8000");
+      var name = null;
+      var loginCheck = true;
+      $('#nc').click(function() {
+        socket.emit('tryName', $('#n').val());
+        socket.on('tryNameResult', function(result) {
+          if(result) {
+            $('.login').hide();
+            $('#blocker').hide();
+            name = $('#n').val();
+          }
+          else if(loginCheck) {
+            $('#nr').append($('<p>').text("Name cannot be used. Try another."));
+            loginCheck = false;
+          }
+        });
+      });
+      $('#n').keypress(function(event) {
+        if(event.which == 13) {
+            socket.emit('tryName', $('#n').val());
+        socket.on('tryNameResult', function(result) {
+          if(result) {
+            $('.login').hide();
+            $('#blocker').hide();
+            name = $('#n').val().substring(0,8).trim();
+          }
+          else if(loginCheck) {
+            $('#nr').append($('<p>').text("Name cannot be used. Try another."));
+            loginCheck = false;
+          }
+        });
+        }
+      });
+
+      socket.on('onlineUsers',function(users) {
+        $("#onlineUsers").empty();
+        for(var i =0;i < users.length;i++) {
+            if(users[i] !== name)
+                $("#onlineUsers").append($('<li>').text(users[i]));
+            else
+                $("#onlineUsers").append($('<li>').text(users[i] + " (YOU)").addClass('YOU'));
+            }
+        });
+      $('#m').keypress(function(event){
+        if(event.which == 13) {
+            socket.emit('chat message', $('#m').val(),whisper);
+            $('#m').val('');
+        }
+      });
+      socket.on('chat message', function(msg){
+        $('#messages').append($('<li>').text(msg));
+        $("#top").stop();
+        $("#top").animate({ scrollTop: $("#top-inner").height() }, "fast");
+      });
+      $('#help').click(function() {
+        $('#menu').show();
+      });
+      $('#menu-out').click(function() {
+        $('#menu').hide();
+      });
+    </script>
+</body>
+</html>
