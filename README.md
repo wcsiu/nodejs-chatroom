@@ -1,3 +1,5 @@
-The OpenShift `nodejs` cartridge documentation can be found at:
+Simple chatroom
 
-http://openshift.github.io/documentation/oo_cartridge_guide.html#nodejs
+It is a little tryout on socket.io.
+
+It includes function like private message, entrance/exit notification and other basic chatroom function.
